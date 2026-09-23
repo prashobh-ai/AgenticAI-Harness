@@ -1,0 +1,28 @@
+{
+  "name": "qualizeal-harness",
+  "owner": {
+    "name": "Qualizeal AI Center of Excellence"
+  },
+  "metadata": {
+    "description": "Qualizeal Agentic AI Harness - the ECC harness engine plus the Qualizeal Quality Engineering pack"
+  },
+  "plugins": [
+    {
+      "name": "qualizeal-qe",
+      "source": "./qualizeal-qe",
+      "description": "Qualizeal Quality Engineering pack - agentic STLC agents, skills, and commands for requirements analysis, risk-based strategy, test design, automation, defect triage, AI/LLM evaluation, and release gating",
+      "version": "0.1.0",
+      "category": "quality-engineering",
+      "strict": true
+    },
+    {
+      "name": "ecc",
+      "source": "./engine",
+      "description": "Harness engine (ECC, MIT) - planning, TDD, code review, security scanning, hooks, rules, memory, and multi-harness adapters",
+      "version": "2.2.2",
+      "license": "MIT",
+      "category": "workflow",
+      "strict": false
+    }
+  ]
+}

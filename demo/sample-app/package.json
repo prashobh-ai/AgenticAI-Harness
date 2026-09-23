@@ -1,0 +1,15 @@
+{
+  "name": "qz-demo-funds-transfer-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Demo target for the Qualizeal Agentic AI Harness - a small funds-transfer API with a happy-path test suite.",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "UNLICENSED"
+}

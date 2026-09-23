@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300" role="img" aria-label="Qualizeal Agentic AI Harness">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0B1B3A"/>
+      <stop offset="1" stop-color="#16325F"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#22C3A6"/>
+      <stop offset="1" stop-color="#4F8CFF"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="300" rx="16" fill="url(#bg)"/>
+  <rect x="64" y="70" width="6" height="92" rx="3" fill="url(#accent)"/>
+  <text x="92" y="108" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif" font-size="22" font-weight="600" fill="#9FB3D9" letter-spacing="3">QUALIZEAL · AI CENTER OF EXCELLENCE</text>
+  <text x="90" y="158" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif" font-size="50" font-weight="700" fill="#FFFFFF">Agentic AI Harness</text>
+  <text x="92" y="196" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif" font-size="20" fill="#C9D6F0">Governed AI agents for software delivery and quality engineering</text>
+  <g font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif" font-size="15" font-weight="600" fill="#0B1B3A">
+    <rect x="92" y="226" width="118" height="32" rx="16" fill="#22C3A6"/><text x="151" y="247" text-anchor="middle">Requirements</text>
+    <rect x="220" y="226" width="92" height="32" rx="16" fill="#3BB0C9"/><text x="266" y="247" text-anchor="middle">Strategy</text>
+    <rect x="322" y="226" width="80" height="32" rx="16" fill="#46A3DE"/><text x="362" y="247" text-anchor="middle">Design</text>
+    <rect x="412" y="226" width="104" height="32" rx="16" fill="#4B98F0"/><text x="464" y="247" text-anchor="middle">Automation</text>
+    <rect x="526" y="226" width="76" height="32" rx="16" fill="#4F8CFF"/><text x="564" y="247" text-anchor="middle">Triage</text>
+    <rect x="612" y="226" width="80" height="32" rx="16" fill="#7A9CFF"/><text x="652" y="247" text-anchor="middle">AI Eval</text>
+    <rect x="702" y="226" width="118" height="32" rx="16" fill="#A5B8FF"/><text x="761" y="247" text-anchor="middle">Release Gate</text>
+  </g>
+  <g opacity="0.18" stroke="#9FB3D9" stroke-width="2" fill="none">
+    <circle cx="1030" cy="150" r="96"/>
+    <circle cx="1030" cy="150" r="64"/>
+    <circle cx="1030" cy="150" r="32"/>
+    <path d="M934 150 H1126 M1030 54 V246"/>
+  </g>
+  <circle cx="1030" cy="150" r="10" fill="#22C3A6"/>
+</svg>
