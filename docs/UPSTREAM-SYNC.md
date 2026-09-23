@@ -6,14 +6,19 @@ git subtree**. It is never edited in place, so updating is a clean merge.
 ## Update the engine
 
 ```bash
-npm run sync:upstream            # latest upstream main
+npm run sync:upstream                  # latest vX.Y.Z release tag (default)
 bash scripts/sync-upstream.sh v2.3.0   # or a specific tag/branch/commit
 ```
+
+Currently pinned: **v2.2.1**. Prefer release tags over upstream `main`: at
+the time of the initial import, `main` (unreleased 2.2.2) had 25 failing
+upstream tests that v2.2.1 does not.
 
 The script:
 
 1. refuses to run on a dirty tree,
-2. adds the `ecc-upstream` remote if needed and fetches the ref,
+2. resolves the latest release tag (unless a ref is given), adds the
+   `ecc-upstream` remote if needed, and fetches the ref,
 3. runs `git subtree pull --prefix engine ... --squash`,
 4. bumps the `ecc` version in `.claude-plugin/marketplace.json` to `engine/VERSION`,
 5. runs `scripts/qz.js validate` (which also catches QE-pack names that now

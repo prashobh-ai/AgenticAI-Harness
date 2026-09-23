@@ -19,7 +19,7 @@
       "name": "ecc",
       "source": "./engine",
       "description": "Harness engine (ECC, MIT) - planning, TDD, code review, security scanning, hooks, rules, memory, and multi-harness adapters",
-      "version": "2.2.2",
+      "version": "2.2.1",
       "license": "MIT",
       "category": "workflow",
       "strict": false

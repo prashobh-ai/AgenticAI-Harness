@@ -22,7 +22,7 @@ requirements -> strategy -> test design -> automation -> triage -> AI evaluation
 | Layer | What it gives you | Size |
 | --- | --- | --- |
 | **Qualizeal QE Pack** (`qualizeal-qe/`) | Agentic STLC: requirements testability, risk-based strategy, technique-driven test design, automation, defect triage, LLM/agent evaluation, release gating | 7 agents · 8 skills · 8 commands |
-| **Harness Engine** (`engine/`) | Planning, TDD, code review, security review, build repair, hooks, rules, memory, continuous learning, AgentShield scanning, multi-harness adapters | 68 agents · 292 skills · 94 commands |
+| **Harness Engine** (`engine/`) | Planning, TDD, code review, security review, build repair, hooks, rules, memory, continuous learning, AgentShield scanning, multi-harness adapters | 68 agents · 286 skills · 94 commands |
 | **Demo kit** (`demo/`) | A banking API with seeded defects, feature spec, AI-assistant eval dataset, and a facilitator answer key | 15-minute live demo |
 
 The engine is the open-source [ECC](https://github.com/affaan-m/ECC) harness
