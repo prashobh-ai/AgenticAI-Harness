@@ -14,8 +14,6 @@ const {
   getSessionSearchDirs,
   getLearnedSkillsDir,
   getProjectName,
-  getRepoIdentity,
-  sameRepoIdentity,
   findFiles,
   ensureDir,
   readFile,
@@ -256,7 +254,6 @@ function pruneExpiredSessions(searchDirs, retentionDays) {
  * Session files written by session-end.js contain header fields like:
  *   **Project:** my-project
  *   **Worktree:** /path/to/project
- *   **Repo:** /path/to/main-worktree/.git
  *
  * This function reads each session file once, caching its content, and
  * returns both the selected session object and its already-read content
@@ -264,18 +261,11 @@ function pruneExpiredSessions(searchDirs, retentionDays) {
  *
  * Priority (highest to lowest):
  *   1. Exact worktree (cwd) match — most recent
- *   2. Repository identity match: the session was recorded in another
- *      worktree or subdirectory of the same repository. Identity is the
- *      main worktree's common git dir (issue #3160), taken from the
- *      recorded **Repo:** field or resolved from the recorded **Worktree:**
- *      path for older session files. Unrelated repositories never match.
- *   3. Same project name match for legacy sessions without Worktree/Repo
- *      metadata
- *   4. No injection when sessions belong to a different repository
+ *   2. Same project name match for legacy sessions without Worktree metadata
+ *   3. No injection when sessions belong to a different worktree/project
  *
  * Sessions are already sorted newest-first, so the first match in each
- * category wins; the scan continues past repository and project matches so
- * an exact worktree match always takes precedence.
+ * category wins.
  *
  * @param {Array<Object>} sessions - Deduplicated session list, sorted newest-first.
  * @param {string} cwd - Current working directory (process.cwd()).
@@ -289,17 +279,7 @@ function selectMatchingSession(sessions, cwd, currentProject) {
 
   // Normalize cwd once outside the loop to avoid repeated syscalls
   const normalizedCwd = normalizePath(cwd);
-  const currentRepoId = getRepoIdentity(cwd);
-  const repoIdByWorktree = new Map();
-  const repoIdOfRecordedWorktree = (recordedWorktree) => {
-    if (!repoIdByWorktree.has(recordedWorktree)) {
-      repoIdByWorktree.set(recordedWorktree, getRepoIdentity(recordedWorktree));
-    }
-    return repoIdByWorktree.get(recordedWorktree);
-  };
 
-  let repoMatch = null;
-  let repoMatchContent = null;
   let projectMatch = null;
   let projectMatchContent = null;
   let readableSessions = 0;
@@ -309,11 +289,9 @@ function selectMatchingSession(sessions, cwd, currentProject) {
     if (!content) continue;
     readableSessions++;
 
-    // Extract **Worktree:** and **Repo:** fields
+    // Extract **Worktree:** field
     const worktreeMatch = content.match(/\*\*Worktree:\*\*\s*(.+)$/m);
     const sessionWorktree = worktreeMatch ? worktreeMatch[1].trim() : '';
-    const repoFieldMatch = content.match(/\*\*Repo:\*\*\s*(.+)$/m);
-    const sessionRepo = repoFieldMatch ? repoFieldMatch[1].trim() : '';
 
     // Exact worktree match — best possible, return immediately
     // Normalize both paths to handle symlinks and case-insensitive filesystems
@@ -321,25 +299,9 @@ function selectMatchingSession(sessions, cwd, currentProject) {
       return { session, content, matchReason: 'worktree' };
     }
 
-    // Repository identity match (#3160): the summary lookup is scoped to the
-    // repository, not the cwd path, so a session recorded in worktree A is
-    // eligible in worktree B only when both resolve to the same common git
-    // dir. Unrelated repositories never share.
-    if (!repoMatch && currentRepoId && (sessionRepo || sessionWorktree)) {
-      // The recorded Repo field may carry a different path form than the
-      // live lookup (8.3 short names on Windows runners, case, separators),
-      // so compare with filesystem-identity fallback rather than ===.
-      const sessionRepoId = sessionRepo || repoIdOfRecordedWorktree(sessionWorktree);
-      if (sessionRepoId && sameRepoIdentity(sessionRepoId, currentRepoId)) {
-        repoMatch = session;
-        repoMatchContent = content;
-      }
-    }
-
     // Project name match is only safe for legacy session files written before
-    // Worktree/Repo metadata existed. A different explicit Worktree or Repo
-    // is not a match.
-    if (!projectMatch && currentProject && !sessionWorktree && !sessionRepo) {
+    // Worktree metadata existed. A different explicit Worktree is not a match.
+    if (!projectMatch && currentProject && !sessionWorktree) {
       const projectFieldMatch = content.match(/\*\*Project:\*\*\s*(.+)$/m);
       const sessionProject = projectFieldMatch ? projectFieldMatch[1].trim() : '';
       if (sessionProject && sessionProject === currentProject) {
@@ -347,10 +309,6 @@ function selectMatchingSession(sessions, cwd, currentProject) {
         projectMatchContent = content;
       }
     }
-  }
-
-  if (repoMatch) {
-    return { session: repoMatch, content: repoMatchContent, matchReason: 'repo' };
   }
 
   if (projectMatch) {

@@ -27,7 +27,6 @@ const {
   assertClaudeSettingsPath,
   materializeManagedHooks,
 } = require('../../scripts/lib/install/claude-settings');
-const { readHooksConfig } = require('../../scripts/lib/hooks-config');
 
 const REPO_ROOT = path.join(__dirname, '..', '..');
 const CURRENT_PACKAGE_VERSION = JSON.parse(
@@ -159,7 +158,7 @@ function managedHookEntry(id, command) {
 
 function currentManagedHooks(targetRoot) {
   return materializeManagedHooks(
-    readHooksConfig(path.join(REPO_ROOT, 'hooks', 'hooks.json')),
+    JSON.parse(fs.readFileSync(path.join(REPO_ROOT, 'hooks', 'hooks.json'), 'utf8')),
     targetRoot
   );
 }

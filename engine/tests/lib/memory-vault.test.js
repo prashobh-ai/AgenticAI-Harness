@@ -510,7 +510,7 @@ test('quarantines imported secrets and metadata that disagrees with its vault lo
         roots: fixture.roots,
         scopes: ['project'],
       }),
-      { code: 'ECC_MEMORY_INCOMPLETE' }
+      /not found/i
     );
   } finally {
     fs.rmSync(fixture.root, { recursive: true, force: true });

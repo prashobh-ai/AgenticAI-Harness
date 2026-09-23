@@ -16,7 +16,6 @@ const os = require('os');
 const path = require('path');
 
 const { buildRecord, deriveOutcome, extractSkillId, run } = require('../../scripts/hooks/skill-run-tracker');
-const { readHooksConfig } = require('../../scripts/lib/hooks-config');
 const {
   MAX_RUN_RECORDS,
   RUNS_FILE_MODE,
@@ -239,7 +238,9 @@ test('an end-to-end Skill hook run lands exactly one non-sensitive record', () =
 // needs its own hooks.json entry. Without it, hard Skill failures are silently
 // dropped and the dashboard's success rate is inflated.
 test('the tracker is registered for PostToolUseFailure so hard failures are recorded', () => {
-  const hooksConfig = readHooksConfig(path.join(__dirname, '..', '..', 'hooks', 'hooks.json'));
+  const hooksConfig = JSON.parse(
+    fs.readFileSync(path.join(__dirname, '..', '..', 'hooks', 'hooks.json'), 'utf8')
+  );
   const entries = (hooksConfig.hooks.PostToolUseFailure || [])
     .filter(entry => entry.id === 'post:skill:track');
 

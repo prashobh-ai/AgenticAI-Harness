@@ -1,7 +1,6 @@
 const path = require('path');
 
 const {
-  HOME_INSTALL_EXCLUDED_SOURCE_PATHS,
   createInstallTargetAdapter,
   createRemappedOperation,
   isForeignPlatformPath,
@@ -53,7 +52,6 @@ module.exports = createInstallTargetAdapter({
   kind: 'home',
   rootSegments: ['.claude'],
   installStatePathSegments: ['ecc', 'install-state.json'],
-  excludedSourcePaths: HOME_INSTALL_EXCLUDED_SOURCE_PATHS,
   nativeRootRelativePath: '.claude-plugin',
   planOperations(input, adapter) {
     const modules = Array.isArray(input.modules)
@@ -68,7 +66,7 @@ module.exports = createInstallTargetAdapter({
     return modules.flatMap(module => {
       const paths = Array.isArray(module.paths) ? module.paths : [];
       return paths
-        .filter(p => !isForeignPlatformPath(p, adapter.target) && !adapter.excludesSourcePath(p))
+        .filter(p => !isForeignPlatformPath(p, adapter.target))
         .flatMap(sourceRelativePath => {
           if (
             module.id === 'hooks-runtime'

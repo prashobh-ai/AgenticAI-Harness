@@ -278,7 +278,7 @@ test('requesting another scope fails without the PR 2 move-scope operation', () 
   });
 });
 
-test('fresh install uses supported Claude arguments and follows the verification sequence', () => {
+test('fresh install follows the exact inventory, marketplace, install, and verification sequence', () => {
   withFixture({}, fixture => {
     const result = setupClaudePlugin(setupOptions(fixture, {
       scope: 'project',
@@ -294,6 +294,8 @@ test('fresh install uses supported Claude arguments and follows the verification
       [
         'plugin', 'install', 'ecc@ecc',
         '--scope', 'project',
+        '--config', 'hooks_enabled=true',
+        '--config', 'hook_profile=strict',
       ],
       ['plugin', 'list', '--json'],
     ]);
@@ -722,6 +724,8 @@ test('provider failures stop later operations and leave settings untouched', () 
   const installArgv = [
     'plugin', 'install', 'ecc@ecc',
     '--scope', 'user',
+    '--config', 'hooks_enabled=true',
+    '--config', 'hook_profile=standard',
   ];
   withFixture({
     failures: [{

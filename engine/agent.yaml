@@ -1,6 +1,6 @@
 spec_version: "0.1.0"
 name: ecc
-version: 2.2.2
+version: 2.2.1
 description: "Initial gitagent export surface for ECC's shared skill catalog, governance, and identity. Native agents, commands, and hooks remain authoritative in the repository while manifest coverage expands."
 author: affaan-m
 license: MIT
@@ -100,9 +100,7 @@ skills:
   - logistics-exception-management
   - market-research
   - mcp-server-patterns
-  - motion-advanced
-  - motion-foundations
-  - motion-patterns
+  - motion-ui
   - nanoclaw-repl
   - nextjs-turbopack
   - nutrient-document-processing
@@ -125,7 +123,6 @@ skills:
   - quarkus-security
   - quarkus-tdd
   - quarkus-verification
-  - rails-patterns
   - ralphinho-rfc-pipeline
   - react-patterns
   - react-performance
@@ -152,9 +149,6 @@ skills:
   - swift-concurrency-6-2
   - swift-protocol-di-testing
   - swiftui-patterns
-  - taste-application
-  - taste-distillation
-  - tasteforge-video
   - tdd-workflow
   - team-builder
   - token-budget-advisor

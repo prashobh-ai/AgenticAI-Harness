@@ -17,7 +17,6 @@
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
-const { readHooksConfig } = require('../scripts/lib/hooks-config');
 
 const repoRoot = path.resolve(__dirname, '..');
 const packageJsonPath = path.join(repoRoot, 'package.json');
@@ -395,7 +394,7 @@ test('codex lifecycle hook bundle contains only Codex 0.146-supported schema', (
     }
   }
 
-  const claudeConfig = readHooksConfig(path.join(repoRoot, 'hooks', 'hooks.json'), 'hooks/hooks.json');
+  const claudeConfig = loadJsonObject(path.join(repoRoot, 'hooks', 'hooks.json'), 'hooks/hooks.json');
   const sourceSessionStart = claudeConfig.hooks.SessionStart.find(group => group.id === 'session:start');
   const expectedSessionStart = {
     ...sourceSessionStart,

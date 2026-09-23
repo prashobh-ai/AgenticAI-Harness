@@ -2,12 +2,9 @@
 
 from __future__ import annotations
 
-import inspect
-import logging
 from collections.abc import Callable
 from typing import Any
 
-from llm.core.interface import LLMError
 from llm.core.types import (
     LLMInput,
     LLMOutput,
@@ -17,21 +14,6 @@ from llm.core.types import (
     ToolDefinition,
     ToolResult,
 )
-
-logger = logging.getLogger(__name__)
-
-# Model-facing failure text. Raw exception details (credentials, local paths,
-# request data, upstream responses) must never reach the model; diagnostics go
-# to trusted logs only.
-GENERIC_TOOL_FAILURE = "Error executing {name}: tool failed"
-
-
-def _generic_failure(tool_call: ToolCall) -> ToolResult:
-    return ToolResult(
-        tool_call_id=tool_call.id,
-        content=GENERIC_TOOL_FAILURE.format(name=tool_call.name),
-        is_error=True,
-    )
 
 ToolFunc = Callable[..., Any]
 
@@ -73,51 +55,17 @@ class ToolExecutor:
 
         try:
             result = func(**tool_call.arguments)
-            if inspect.isawaitable(result):
-                logger.warning(
-                    "Async tool '%s' called via sync execute(); use execute_async()",
-                    tool_call.name,
-                )
-                if inspect.iscoroutine(result):
-                    result.close()
-                return ToolResult(
-                    tool_call_id=tool_call.id,
-                    content=GENERIC_TOOL_FAILURE.format(name=tool_call.name),
-                    is_error=True,
-                )
             content = result if isinstance(result, str) else str(result)
             return ToolResult(tool_call_id=tool_call.id, content=content)
-        except Exception:
-            logger.exception("Tool '%s' failed", tool_call.name)
-            return _generic_failure(tool_call)
-
-    async def execute_async(self, tool_call: ToolCall) -> ToolResult:
-        func = self.registry.get(tool_call.name)
-        if not func:
+        except Exception as e:
             return ToolResult(
                 tool_call_id=tool_call.id,
-                content=f"Error: Tool '{tool_call.name}' not found",
+                content=f"Error executing {tool_call.name}: {e}",
                 is_error=True,
             )
 
-        try:
-            result = func(**tool_call.arguments)
-            if inspect.isawaitable(result):
-                result = await result
-            content = result if isinstance(result, str) else str(result)
-            return ToolResult(tool_call_id=tool_call.id, content=content)
-        except Exception:
-            logger.exception("Tool '%s' failed", tool_call.name)
-            return _generic_failure(tool_call)
-
     def execute_all(self, tool_calls: list[ToolCall]) -> list[ToolResult]:
         return [self.execute(tc) for tc in tool_calls]
-
-    async def execute_all_async(self, tool_calls: list[ToolCall]) -> list[ToolResult]:
-        results: list[ToolResult] = []
-        for tc in tool_calls:
-            results.append(await self.execute_async(tc))
-        return results
 
 
 class ReActAgent:
@@ -144,14 +92,7 @@ class ReActAgent:
                 tools=tools,
             )
 
-            try:
-                output: LLMOutput = self.provider.generate(input_copy)
-            except LLMError as e:
-                logger.warning("Provider failed during agent run: %s", e.code or type(e).__name__)
-                return LLMOutput(
-                    content=f"Provider error: {e.code or type(e).__name__}",
-                    stop_reason="provider_error",
-                )
+            output: LLMOutput = self.provider.generate(input_copy)
 
             if not output.has_tool_calls:
                 return output
@@ -164,7 +105,7 @@ class ReActAgent:
                 )
             )
 
-            results = await self.executor.execute_all_async(output.tool_calls or [])
+            results = self.executor.execute_all(output.tool_calls or [])
 
             for result in results:
                 messages.append(
