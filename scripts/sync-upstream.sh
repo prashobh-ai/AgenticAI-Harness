@@ -1,10 +1,19 @@
 #!/usr/bin/env bash
 # Pull the latest ECC upstream into engine/ as a squashed git subtree.
-# Usage: scripts/sync-upstream.sh [ref]   (default: main)
+# Usage: scripts/sync-upstream.sh [ref]   (default: latest vX.Y.Z release tag)
+#
+# Release tags are preferred over main: upstream main can carry tests that
+# are red until the next release.
 set -euo pipefail
 
-REF="${1:-main}"
 UPSTREAM_URL="https://github.com/affaan-m/ECC.git"
+REF="${1:-$(git ls-remote --tags --refs "$UPSTREAM_URL" 'v*' \
+  | awk -F/ '{print $3}' | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -1)}"
+if [ -z "$REF" ]; then
+  echo "Could not resolve the latest upstream release tag; pass a ref explicitly." >&2
+  exit 1
+fi
+echo "Syncing engine/ to ECC upstream $REF"
 
 cd "$(git rev-parse --show-toplevel)"
 
