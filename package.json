@@ -1,0 +1,18 @@
+{
+  "name": "@qualizeal/agentic-ai-harness",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Qualizeal Agentic AI Harness - the ECC harness engine plus the Qualizeal Quality Engineering pack for agentic STLC and AI evaluation.",
+  "scripts": {
+    "validate": "node scripts/qz.js validate",
+    "test": "node scripts/qz.js validate && node --test tests/*.test.js && npm --prefix demo/sample-app test",
+    "test:engine": "bash scripts/test-engine.sh",
+    "qz": "node scripts/qz.js",
+    "demo:start": "npm --prefix demo/sample-app start",
+    "sync:upstream": "bash scripts/sync-upstream.sh"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "SEE LICENSE IN NOTICE.md"
+}

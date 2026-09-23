@@ -1,0 +1,20 @@
+{
+  "name": "qualizeal-qe",
+  "version": "0.1.0",
+  "description": "Qualizeal Quality Engineering pack - agentic STLC agents, skills, and commands for requirements analysis, risk-based strategy, test design, automation, defect triage, AI/LLM evaluation, and release gating.",
+  "author": {
+    "name": "Qualizeal AI Center of Excellence"
+  },
+  "homepage": "https://github.com/prashobh-ai/AgenticAI-Harness",
+  "repository": "https://github.com/prashobh-ai/AgenticAI-Harness",
+  "keywords": [
+    "quality-engineering",
+    "stlc",
+    "test-automation",
+    "test-design",
+    "defect-triage",
+    "llm-evaluation",
+    "release-readiness",
+    "qualizeal"
+  ]
+}
