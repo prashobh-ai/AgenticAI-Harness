@@ -16,7 +16,8 @@ Guidance for agents working **on** this repository (not for clients using it).
 
 ```bash
 npm test               # pack validation + tests/ + demo app tests
-npm run test:engine    # upstream engine suite (slow)
+npm run test:engine    # upstream engine suite (slow; runs from a temp copy
+                       # because upstream tests assume engine/ is a repo root)
 node scripts/qz.js validate
 ```
 
