@@ -102,7 +102,7 @@ function listIssues(repo, options = {}) {
   const { owner, name } = normalizeRepo(repo);
   const limit = Number.isFinite(options.limit) ? options.limit : 100;
   const state = options.state || 'all';
-  const args = [
+  return runGhJson([
     'issue',
     'list',
     '--repo',
@@ -111,12 +111,9 @@ function listIssues(repo, options = {}) {
     state,
     '--limit',
     String(limit),
-    ...(options.label ? ['--label', options.label] : []),
-    ...(options.search ? ['--search', options.search] : []),
     '--json',
     'number,title,body,url,state,labels,author,updatedAt,assignees',
-  ];
-  return runGhJson(args, options) || [];
+  ], options) || [];
 }
 
 function editIssue(repo, issueNumber, options = {}) {

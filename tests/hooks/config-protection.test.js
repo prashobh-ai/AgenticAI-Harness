@@ -112,9 +112,10 @@ function runTests() {
         }
       };
 
+      const rawInput = JSON.stringify(input);
       const result = runHook(input);
       assert.strictEqual(result.code, 0, 'Expected safe file edit to pass');
-      assert.strictEqual(result.stdout, '', 'Allowed edits should not echo raw hook input');
+      assert.strictEqual(result.stdout, rawInput, 'Expected exact raw JSON passthrough');
       assert.strictEqual(result.stderr, '', 'Expected no stderr for safe edits');
     })
   )
@@ -154,9 +155,10 @@ function runTests() {
           }
         };
 
+        const rawInput = JSON.stringify(input);
         const result = runHook(input);
         assert.strictEqual(result.code, 0, `Expected exit 0 for first-time creation, got ${result.code}; stderr: ${result.stderr}`);
-        assert.strictEqual(result.stdout, '', 'Allowed creation should not echo raw hook input');
+        assert.strictEqual(result.stdout, rawInput, 'Expected raw passthrough when creation is allowed');
         assert.strictEqual(result.stderr, '', `Expected no stderr for first-time creation, got: ${result.stderr}`);
       } finally {
         try {
@@ -187,9 +189,10 @@ function runTests() {
           }
         };
 
+        const rawInput = JSON.stringify(input);
         const result = runHook(input);
         assert.strictEqual(result.code, 0, `Expected exit 0 for ENOENT path, got ${result.code}; stderr: ${result.stderr}`);
-        assert.strictEqual(result.stdout, '', 'Allowed missing paths should not echo raw hook input');
+        assert.strictEqual(result.stdout, rawInput, 'Expected raw passthrough when path does not exist');
       } finally {
         try {
           fs.rmSync(tmpDir, { recursive: true, force: true });

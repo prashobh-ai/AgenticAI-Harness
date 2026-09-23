@@ -15,8 +15,7 @@
     "sourceMap": true,
     "resolveJsonModule": true,
     "isolatedModules": true,
-    "allowImportingTsExtensions": true,
-    "rewriteRelativeImportExtensions": true,
+    "verbatimModuleSyntax": true,
     "types": ["node"]
   },
   "include": [

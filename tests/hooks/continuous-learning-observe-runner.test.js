@@ -17,7 +17,6 @@ const hooksJsonPath = path.join(repoRoot, 'hooks', 'hooks.json');
 const runWithFlagsPath = path.join(repoRoot, 'scripts', 'hooks', 'run-with-flags.js');
 const observeRunner = require(path.join(repoRoot, 'scripts', 'hooks', 'observe-runner.js'));
 const postToolUseDispatcher = require(path.join(repoRoot, 'scripts', 'hooks', 'posttooluse-dispatcher.js'));
-const { readHooksConfig } = require(path.join(repoRoot, 'scripts', 'lib', 'hooks-config.js'));
 
 function test(name, fn) {
   try {
@@ -32,7 +31,7 @@ function test(name, fn) {
 }
 
 function loadHook(id) {
-  const hookGroups = readHooksConfig(hooksJsonPath).hooks;
+  const hookGroups = JSON.parse(fs.readFileSync(hooksJsonPath, 'utf8')).hooks;
   const hooks = Object.values(hookGroups).flat();
   const hook = hooks.find(candidate => candidate.id === id);
   assert.ok(hook, `Expected ${id} in hooks/hooks.json`);

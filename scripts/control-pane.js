@@ -10,14 +10,16 @@ const {
 } = require('./lib/control-pane/server');
 const { describeMissingDependencyError } = require('./lib/missing-dependency');
 
-// openBrowser is now in scripts/lib/platform-launch.js — keep a thin wrapper
-// for backwards compatibility, but surface the structured result.
-const { openBrowser: launchOpenBrowser } = require('./lib/platform-launch');
 function openBrowser(url) {
-  const result = launchOpenBrowser(url);
-  if (!result.opened) {
-    console.error(`[control-pane] failed to open browser: ${result.reason}`);
-  }
+  if (process.platform !== 'darwin') return;
+  const child = spawn('open', [url], {
+    stdio: 'ignore',
+    detached: true,
+  });
+  child.on('error', error => {
+    console.error(`[control-pane] failed to open browser: ${error.message}`);
+  });
+  child.unref();
 }
 
 async function main(argv = process.argv) {

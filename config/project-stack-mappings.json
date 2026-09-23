@@ -359,7 +359,6 @@
       ],
       "rules": ["common"],
       "skills": [
-        "rails-patterns",
         "tdd-workflow",
         "verification-loop"
       ],

@@ -5,7 +5,6 @@ const {
   CLAUDE_HOOKS_CONFIG_PATH,
   getClaudeSettingsPath,
 } = require('../install/claude-settings');
-const { METADATA_FILENAME } = require('../hooks-config');
 
 const PLATFORM_SOURCE_PATH_OWNERS = Object.freeze({
   '.claude-plugin': 'claude',
@@ -24,14 +23,6 @@ const PLATFORM_SOURCE_PATH_OWNERS = Object.freeze({
   '.adal': 'adal',
 });
 
-// Source paths that home installs must never copy into a harness home
-// directory. `.agents` is ECC's repo-local skills/plugins staging area:
-// project targets such as kimi and antigravity consume it, but neither
-// Claude Code nor Codex reads a `.agents` directory under ~/.claude or
-// ~/.codex, so copying it there produces unread files that doctor flags as
-// drift and repair keeps restoring.
-const HOME_INSTALL_EXCLUDED_SOURCE_PATHS = Object.freeze(['.agents']);
-
 function normalizeRelativePath(relativePath) {
   return String(relativePath || '')
     .replace(/\\/g, '/')
@@ -49,14 +40,6 @@ function isForeignPlatformPath(sourceRelativePath, adapterTarget) {
   }
 
   return false;
-}
-
-function isExcludedSourcePath(sourceRelativePath, excludedSourcePaths = []) {
-  const normalizedPath = normalizeRelativePath(sourceRelativePath);
-  return excludedSourcePaths.some(excluded => {
-    const prefix = normalizeRelativePath(excluded);
-    return prefix !== '' && (normalizedPath === prefix || normalizedPath.startsWith(`${prefix}/`));
-  });
 }
 
 function resolveBaseRoot(scope, input = {}) {
@@ -193,9 +176,7 @@ function planClaudeHooksOperations(adapter, module, input) {
   return [
     ...operations,
     ...fs.readdirSync(sourceHooksRoot, { withFileTypes: true })
-      // hooks.json is merged into settings.json above, and its metadata sidecar
-      // is consumed with it, so neither is scaffolded into the target hooks dir.
-      .filter(entry => entry.name !== 'hooks.json' && entry.name !== METADATA_FILENAME)
+      .filter(entry => entry.name !== 'hooks.json')
       .sort((left, right) => left.name.localeCompare(right.name))
       .map(entry => adapter.createScaffoldOperation(
         module.id,
@@ -367,9 +348,6 @@ function createInstallTargetAdapter(config) {
         strategy: adapter.determineStrategy(normalizedSourcePath),
       });
     },
-    excludesSourcePath(sourceRelativePath) {
-      return isExcludedSourcePath(sourceRelativePath, config.excludedSourcePaths);
-    },
     planOperations(input = {}) {
       if (typeof config.planOperations === 'function') {
         return config.planOperations(input, adapter);
@@ -379,7 +357,7 @@ function createInstallTargetAdapter(config) {
         return input.modules.flatMap(module => {
           const paths = Array.isArray(module.paths) ? module.paths : [];
           return paths
-            .filter(p => !isForeignPlatformPath(p, config.target) && !adapter.excludesSourcePath(p))
+            .filter(p => !isForeignPlatformPath(p, config.target))
             .map(sourceRelativePath => adapter.createScaffoldOperation(
               module.id,
               sourceRelativePath,
@@ -391,7 +369,7 @@ function createInstallTargetAdapter(config) {
       const module = input.module || {};
       const paths = Array.isArray(module.paths) ? module.paths : [];
       return paths
-        .filter(p => !isForeignPlatformPath(p, config.target) && !adapter.excludesSourcePath(p))
+        .filter(p => !isForeignPlatformPath(p, config.target))
         .map(sourceRelativePath => adapter.createScaffoldOperation(
           module.id,
           sourceRelativePath,
@@ -418,8 +396,6 @@ function createInstallTargetAdapter(config) {
 }
 
 module.exports = {
-  HOME_INSTALL_EXCLUDED_SOURCE_PATHS,
-  isExcludedSourcePath,
   buildValidationIssue,
   createFlatFileOperations,
   createFlatRuleOperations,

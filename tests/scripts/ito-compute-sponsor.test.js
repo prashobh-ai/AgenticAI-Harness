@@ -237,11 +237,7 @@ function main() {
       assert.ok(localModelPath.includes('assets/images/sponsors/moonshot.png'));
       assert.ok(localModelPath.includes('assets/images/community/ecc-tools-mark.svg'));
       assert.match(readme, /install\.sh --target kimi --profile minimal/);
-      const version = JSON.parse(read('package.json')).version;
-      assert.ok(
-        readme.includes(`npx ecc-universal@${version} doctor --target kimi`),
-        'README must document the Kimi doctor command pinned to the ECC release'
-      );
+      assert.match(readme, /npx ecc-universal doctor --target kimi/);
       assert.match(readme, /\.kimi-code\/AGENTS\.md/);
       assert.match(readme, /\.kimi-code\/skills\//);
       assert.match(readme, /~\/\.kimi-code\/config\.toml/);

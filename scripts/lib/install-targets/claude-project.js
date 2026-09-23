@@ -9,7 +9,6 @@ const {
 } = require('./helpers');
 
 const CLAUDE_ECC_NAMESPACE = 'ecc';
-const CLAUDE_PROJECT_COMMONJS_PACKAGE = 'manifests/install-assets/claude-project-scripts-package.json';
 
 function getClaudeManagedDestinationPath(adapter, sourceRelativePath, input) {
   const normalizedSourcePath = normalizeRelativePath(sourceRelativePath);
@@ -66,7 +65,7 @@ module.exports = createInstallTargetAdapter({
 
     return modules.flatMap(module => {
       const paths = Array.isArray(module.paths) ? module.paths : [];
-      const operations = paths
+      return paths
         .filter(p => !isForeignPlatformPath(p, 'claude'))
         .flatMap(sourceRelativePath => {
           if (
@@ -94,21 +93,6 @@ module.exports = createInstallTargetAdapter({
 
           return [adapter.createScaffoldOperation(module.id, sourceRelativePath, planningInput)];
         });
-
-      if (module.id !== 'hooks-runtime') {
-        return operations;
-      }
-
-      return [
-        ...['hooks', 'lib'].map(directory => createRemappedOperation(
-          adapter,
-          module.id,
-          CLAUDE_PROJECT_COMMONJS_PACKAGE,
-          path.join(adapter.resolveRoot(planningInput), 'scripts', directory, 'package.json'),
-          { strategy: 'preserve-relative-path' }
-        )),
-        ...operations,
-      ];
     });
   },
 });

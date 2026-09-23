@@ -1,5 +1,5 @@
 import { tool, type ToolDefinition } from "@opencode-ai/plugin/tool"
-import type { ChangeType, TreeNode } from "../plugins/lib/changed-files-store.ts"
+import type { ChangeType, TreeNode } from "../plugins/lib/changed-files-store.js"
 
 const INDICATORS: Record<ChangeType, string> = {
   added: "+",
@@ -27,12 +27,12 @@ function renderTree(nodes: TreeNode[], indent: string): string {
 // file, so a static import failure here previously took down the entire
 // tools module -- and with it, the whole OpenCode session -- on the very
 // first tool-loading pass (see #2530).
-type ChangedFilesStore = typeof import("../plugins/lib/changed-files-store.ts")
+type ChangedFilesStore = typeof import("../plugins/lib/changed-files-store.js")
 let changedFilesStorePromise: Promise<ChangedFilesStore> | undefined
 
 async function loadChangedFilesStore(): Promise<ChangedFilesStore> {
   if (!changedFilesStorePromise) {
-    changedFilesStorePromise = import("../plugins/lib/changed-files-store.ts").catch(() => {
+    changedFilesStorePromise = import("../plugins/lib/changed-files-store.js").catch(() => {
       changedFilesStorePromise = undefined
       throw new Error(
         "changed-files tool: could not load the changed-files store. " +

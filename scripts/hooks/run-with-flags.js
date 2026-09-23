@@ -12,25 +12,28 @@ const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
 const { isHookEnabled, isDryRun } = require('../lib/hook-flags');
-const { readStdinRaw: readBoundedStdin, resolveMaxStdin } = require('./hook-input');
 const { buildPreToolUseAdditionalContext } = require('./pretooluse-visible-output');
 
-const FAIL_CLOSED_ON_TRUNCATION_HOOKS = new Set([
-  'pre:powershell:gateguard-fact-force',
-  'pre:edit-write:gateguard-fact-force',
-  'pre:mcp-health-check'
-]);
-
-const MAX_STDIN = resolveMaxStdin(process.env.ECC_HOOK_INPUT_MAX_BYTES, {
-  writeDiagnostic: message => process.stderr.write(message)
-});
+const MAX_STDIN = 1024 * 1024;
 
 function readStdinRaw() {
-  return readBoundedStdin(process.stdin, {
-    maxStdin: MAX_STDIN,
-    truncated: /^(1|true|yes)$/i.test(
-      String(process.env.ECC_HOOK_INPUT_TRUNCATED_UPSTREAM || '')
-    )
+  return new Promise(resolve => {
+    let raw = '';
+    let truncated = false;
+    process.stdin.setEncoding('utf8');
+    process.stdin.on('data', chunk => {
+      if (raw.length < MAX_STDIN) {
+        const remaining = MAX_STDIN - raw.length;
+        raw += chunk.substring(0, remaining);
+        if (chunk.length > remaining) {
+          truncated = true;
+        }
+      } else {
+        truncated = true;
+      }
+    });
+    process.stdin.on('end', () => resolve({ raw, truncated }));
+    process.stdin.on('error', () => resolve({ raw, truncated }));
   });
 }
 
@@ -65,7 +68,7 @@ function exitWithStdout(text, exitCode) {
   process.stderr.write('', exitWhenFlushed);
 }
 
-function resolveHookResult(output) {
+function resolveHookResult(raw, output) {
   if (typeof output === 'string' || Buffer.isBuffer(output)) {
     return { stdout: String(output), exitCode: 0 };
   }
@@ -80,39 +83,23 @@ function resolveHookResult(output) {
     if (Object.prototype.hasOwnProperty.call(output, 'stdout')) {
       return { stdout: String(output.stdout ?? ''), exitCode };
     }
-    return { stdout: '', exitCode };
+    return { stdout: exitCode === 0 ? raw : '', exitCode };
   }
 
-  return { stdout: '', exitCode: 0 };
+  return { stdout: raw, exitCode: 0 };
 }
 
-function resolveLegacySpawnStdout(result) {
+function resolveLegacySpawnStdout(raw, result) {
   const stdout = typeof result.stdout === 'string' ? result.stdout : '';
-  return stdout || '';
-}
-
-function truncatedInputResult(hookId, maxStdin) {
-  if (!FAIL_CLOSED_ON_TRUNCATION_HOOKS.has(hookId)) return null;
-  if (hookId === 'pre:powershell:gateguard-fact-force'
-    || hookId === 'pre:edit-write:gateguard-fact-force') {
-    const gateGuardValue = String(process.env.ECC_GATEGUARD || '').trim().toLowerCase();
-    const legacyDisabled = String(process.env.GATEGUARD_DISABLED || '').trim() === '1';
-    if (legacyDisabled || ['0', 'false', 'off', 'disabled', 'disable'].includes(gateGuardValue)) {
-      return null;
-    }
-  }
-  if (hookId === 'pre:mcp-health-check') {
-    const failOpen = /^(1|true|yes)$/i.test(
-      String(process.env.ECC_MCP_HEALTH_FAIL_OPEN || '')
-    );
-    if (failOpen) return null;
+  if (stdout) {
+    return stdout;
   }
 
-  return {
-    stdout: '',
-    stderr: `BLOCKED: Hook input exceeded ${maxStdin} bytes, so ${hookId} could not safely inspect the complete request. Retry with a smaller tool input or explicitly disable this hook.`,
-    exitCode: 2
-  };
+  if (Number.isInteger(result.status) && result.status === 0) {
+    return raw;
+  }
+
+  return '';
 }
 
 function getPluginRoot() {
@@ -170,28 +157,28 @@ async function main() {
   // Oversized payloads: never echo the truncated string — a JSON document
   // cut mid-stream is treated by the harness as a hook failure, blocking the
   // tool call (#2222). Empty stdout + exit 0 means "no opinion", so
-  // silent/no-op paths fail open. The hook itself still runs and receives
+  // pass-through paths fail open. The hook itself still runs and receives
   // the truncated flag (run() context / ECC_HOOK_INPUT_TRUNCATED), so
   // security hooks like config-protection can still choose to block.
   const sanitizeEcho = text => (truncated && text === raw ? '' : text);
   if (truncated) {
-    process.stderr.write(`[Hook] stdin exceeded ${MAX_STDIN} bytes for ${hookId || 'unknown'}; suppressing raw passthrough\n`);
+    process.stderr.write(`[Hook] stdin exceeded ${MAX_STDIN} bytes for ${hookId || 'unknown'}; suppressing pass-through (fail-open unless the hook blocks)\n`);
   }
 
   if (!hookId || !relScriptPath) {
-    exitWithStdout('', 0);
+    exitWithStdout(sanitizeEcho(raw), 0);
     return;
   }
 
   if (!isHookEnabled(hookId, { profiles: profilesCsv })) {
-    exitWithStdout('', 0);
+    exitWithStdout(sanitizeEcho(raw), 0);
     return;
   }
 
   if (isDryRun()) {
     const preview = buildDryRunPreview(hookId, relScriptPath, profilesCsv, raw);
     process.stderr.write(preview);
-    exitWithStdout('', 0);
+    exitWithStdout(sanitizeEcho(raw), 0);
     return;
   }
 
@@ -202,20 +189,13 @@ async function main() {
   // Prevent path traversal outside the plugin root
   if (!scriptPath.startsWith(resolvedRoot + path.sep)) {
     process.stderr.write(`[Hook] Path traversal rejected for ${hookId}: ${scriptPath}\n`);
-    exitWithStdout('', 0);
+    exitWithStdout(sanitizeEcho(raw), 0);
     return;
   }
 
   if (!fs.existsSync(scriptPath)) {
     process.stderr.write(`[Hook] Script not found for ${hookId}: ${scriptPath}\n`);
-    exitWithStdout('', 0);
-    return;
-  }
-
-  const truncationBlock = truncated ? truncatedInputResult(hookId, MAX_STDIN) : null;
-  if (truncationBlock) {
-    writeStderr(truncationBlock.stderr);
-    exitWithStdout(truncationBlock.stdout, truncationBlock.exitCode);
+    exitWithStdout(sanitizeEcho(raw), 0);
     return;
   }
 
@@ -227,18 +207,7 @@ async function main() {
   // which would interfere with the parent process or cause double execution.
   let hookModule;
   const src = fs.readFileSync(scriptPath, 'utf8');
-  // Gate require() on concrete export syntax, not a bare word match: the old
-  // /\bmodule\.exports\b/ && /\brun\b/ test fired on comments, strings, and
-  // unrelated properties, causing require() — and its module-scope side
-  // effects — to run for hooks that export no run(). Still lexical (no parser
-  // dependency), but requires an actual export assignment form.
-  const RUN_EXPORT_PATTERNS = [
-    /module\.exports\s*\.\s*run\s*=/,
-    /exports\s*\.\s*run\s*=/,
-    /module\.exports\s*=\s*\{[^}]*\brun\b/,
-    /module\.exports\s*=\s*(async\s+)?function\s+run\b/,
-  ];
-  const hasRunExport = RUN_EXPORT_PATTERNS.some(re => re.test(src));
+  const hasRunExport = /\bmodule\.exports\b/.test(src) && /\brun\b/.test(src);
 
   if (hasRunExport) {
     try {
@@ -262,11 +231,11 @@ async function main() {
         truncated,
         maxStdin: MAX_STDIN
       });
-      const result = resolveHookResult(output);
+      const result = resolveHookResult(raw, output);
       exitWithStdout(sanitizeEcho(result.stdout), result.exitCode);
     } catch (runErr) {
       process.stderr.write(`[Hook] run() error for ${hookId}: ${runErr.message}\n`);
-      exitWithStdout('', 0);
+      exitWithStdout(sanitizeEcho(raw), 0);
     }
     return;
   }
@@ -287,7 +256,7 @@ async function main() {
     timeout: 30000
   });
 
-  const legacyStdout = sanitizeEcho(resolveLegacySpawnStdout(result));
+  const legacyStdout = sanitizeEcho(resolveLegacySpawnStdout(raw, result));
   if (result.stderr) process.stderr.write(result.stderr);
 
   if (result.error || result.signal || result.status === null) {

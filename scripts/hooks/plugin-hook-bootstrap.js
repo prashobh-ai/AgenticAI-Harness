@@ -1,13 +1,20 @@
 #!/usr/bin/env node
 'use strict';
 
+const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
 const { ensureAgentDataHomeEnv } = require('../lib/agent-data-home');
-const { normalizePluginRootForPlatform } = require('../lib/resolve-ecc-root');
-const { readStdinRaw: readBoundedStdin, resolveMaxStdin } = require('./hook-input');
 
 const SHELL_PROBE_TIMEOUT_MS = 2000;
+
+function readStdinRaw() {
+  try {
+    return fs.readFileSync(0, 'utf8');
+  } catch (_error) {
+    return '';
+  }
+}
 
 function writeStderr(stderr) {
   if ((typeof stderr === 'string' || Buffer.isBuffer(stderr)) && stderr.length > 0) {
@@ -69,6 +76,20 @@ function passthrough(result) {
   if (!Number.isInteger(result?.status) || result.status === 0) {
     writeStderr('[Hook] bootstrap: hook produced no output; emitting empty stdout\n');
   }
+}
+
+function normalizePluginRootForPlatform(rootDir, platform = process.platform) {
+  if (platform !== 'win32' || typeof rootDir !== 'string') {
+    return rootDir;
+  }
+
+  const match = rootDir.match(/^\/([a-zA-Z])(?:\/(.*))?$/);
+  if (!match) {
+    return rootDir;
+  }
+
+  const [, driveLetter, rest = ''] = match;
+  return `${driveLetter.toUpperCase()}:/${rest}`;
 }
 
 function resolveTarget(rootDir, relPath) {
@@ -162,14 +183,12 @@ function findBashBinary() {
   return null;
 }
 
-function spawnNode(rootDir, relPath, raw, args, options = {}) {
+function spawnNode(rootDir, relPath, raw, args) {
   ensureAgentDataHomeEnv();
   const hookEnv = {
     ...process.env,
     CLAUDE_PLUGIN_ROOT: rootDir,
     ECC_PLUGIN_ROOT: rootDir,
-    ECC_HOOK_INPUT_MAX_BYTES: String(options.maxStdin),
-    ECC_HOOK_INPUT_TRUNCATED_UPSTREAM: options.truncated ? '1' : '0',
   };
   const result = spawnSync(process.execPath, [resolveTarget(rootDir, relPath), ...args], {
     input: raw,
@@ -185,7 +204,7 @@ function spawnNode(rootDir, relPath, raw, args, options = {}) {
 // (all hooks use 'node' mode). It is provided for third-party plugins that
 // register shell-backed hooks. Plugins should supply .ps1 scripts on Windows
 // and .sh scripts on Unix; mixing them will produce a skip with a stderr warning.
-function spawnShell(rootDir, relPath, raw, args, options = {}) {
+function spawnShell(rootDir, relPath, raw, args) {
   const shell = findShellBinary();
   if (!shell) {
     return {
@@ -200,8 +219,6 @@ function spawnShell(rootDir, relPath, raw, args, options = {}) {
     ...process.env,
     CLAUDE_PLUGIN_ROOT: rootDir,
     ECC_PLUGIN_ROOT: rootDir,
-    ECC_HOOK_INPUT_MAX_BYTES: String(options.maxStdin),
-    ECC_HOOK_INPUT_TRUNCATED_UPSTREAM: options.truncated ? '1' : '0',
   };
   const scriptPath = resolveTarget(rootDir, relPath);
   const isPs = isPowerShellBin(shell);
@@ -243,12 +260,9 @@ function spawnShell(rootDir, relPath, raw, args, options = {}) {
   return withComparisonInput(result, Buffer.from(raw, 'utf8'));
 }
 
-async function main() {
+function main() {
   const [, , mode, relPath, ...args] = process.argv;
-  const maxStdin = resolveMaxStdin(process.env.ECC_HOOK_INPUT_MAX_BYTES, {
-    writeDiagnostic: message => process.stderr.write(message)
-  });
-  const { raw, truncated } = await readBoundedStdin(process.stdin, { maxStdin });
+  const raw = readStdinRaw();
   const rootDir = normalizePluginRootForPlatform(
     process.env.CLAUDE_PLUGIN_ROOT || process.env.ECC_PLUGIN_ROOT
   );
@@ -261,16 +275,12 @@ async function main() {
     return;
   }
 
-  if (truncated) {
-    process.stderr.write(`[Hook] bootstrap: stdin exceeded ${maxStdin} bytes; forwarded a bounded prefix\n`);
-  }
-
   let result;
   try {
     if (mode === 'node') {
-      result = spawnNode(rootDir, relPath, raw, args, { maxStdin, truncated });
+      result = spawnNode(rootDir, relPath, raw, args);
     } else if (mode === 'shell') {
-      result = spawnShell(rootDir, relPath, raw, args, { maxStdin, truncated });
+      result = spawnShell(rootDir, relPath, raw, args);
     } else {
       writeStderr(`[Hook] unknown bootstrap mode: ${mode}; emitting empty stdout\n`);
       process.exitCode = 0;
@@ -307,10 +317,7 @@ async function main() {
 // exports (tests), require.main is a real, different module, so main() stays
 // dormant.
 if (require.main === module || require.main === undefined) {
-  main().catch(error => {
-    writeStderr(`[Hook] bootstrap failed: ${error.message}\n`);
-    process.exitCode = 0;
-  });
+  main();
 }
 
 module.exports = {
